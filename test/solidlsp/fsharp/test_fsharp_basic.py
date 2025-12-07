@@ -32,10 +32,10 @@ class TestFSharpLanguageServer:
     def test_get_document_symbols_program(self, language_server: SolidLanguageServer) -> None:
         """Test getting document symbols from the main Program.fs file."""
         file_path = os.path.join("Program.fs")
-        symbols = language_server.request_document_symbols(file_path)
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()
 
         # Check that we have symbols
-        assert len(symbols) > 0
+        assert len(symbols[0]) > 0
 
         # Flatten the symbols if they're nested
         if isinstance(symbols[0], list):
@@ -49,10 +49,10 @@ class TestFSharpLanguageServer:
     def test_get_document_symbols_calculator(self, language_server: SolidLanguageServer) -> None:
         """Test getting document symbols from Calculator.fs file."""
         file_path = os.path.join("Calculator.fs")
-        symbols = language_server.request_document_symbols(file_path)
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()
 
         # Check that we have symbols
-        assert len(symbols) > 0
+        assert len(symbols[0]) > 0
 
         # Flatten the symbols if they're nested
         if isinstance(symbols[0], list):
@@ -69,7 +69,7 @@ class TestFSharpLanguageServer:
     def test_find_referencing_symbols(self, language_server: SolidLanguageServer) -> None:
         """Test finding references using symbol selection range."""
         file_path = os.path.join("Calculator.fs")
-        symbols = language_server.request_document_symbols(file_path)
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()
 
         # Find the 'add' function symbol
         add_symbol = None
@@ -93,10 +93,10 @@ class TestFSharpLanguageServer:
     def test_nested_module_symbols(self, language_server: SolidLanguageServer) -> None:
         """Test getting symbols from nested Models namespace."""
         file_path = os.path.join("Models", "Person.fs")
-        symbols = language_server.request_document_symbols(file_path)
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()
 
         # Check that we have symbols
-        assert len(symbols) > 0
+        assert len(symbols[0]) > 0
 
         # Flatten the symbols if they're nested
         if isinstance(symbols[0], list):
@@ -114,7 +114,7 @@ class TestFSharpLanguageServer:
         """Test finding references to Calculator functions across files."""
         # Find the subtract function in Calculator.fs
         file_path = os.path.join("Calculator.fs")
-        symbols = language_server.request_document_symbols(file_path)
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()
 
         # Flatten the symbols if they're nested
         symbol_list = symbols[0] if symbols and isinstance(symbols[0], list) else symbols
@@ -214,11 +214,10 @@ class TestFSharpLanguageServerSetup:
         """Test that setup fails gracefully when .NET is not installed."""
         with patch("shutil.which", return_value=None):
             with pytest.raises(RuntimeError, match=r"\.NET SDK is not installed"):
-                FSharpLanguageServer._setup_runtime_dependencies(Mock(), Mock(), Mock())
+                FSharpLanguageServer._setup_runtime_dependencies(Mock(), Mock())
 
     def test_runtime_dependency_setup_with_dotnet(self) -> None:
         """Test that setup works when .NET is available."""
-        mock_logger = Mock()
         mock_config = Mock()
         mock_settings = Mock()
 
@@ -237,7 +236,7 @@ class TestFSharpLanguageServerSetup:
                         fsautocomplete_path = os.path.join(fsharp_dir, "fsautocomplete")
                         Path(fsautocomplete_path).touch()
 
-                        result = FSharpLanguageServer._setup_runtime_dependencies(mock_logger, mock_config, mock_settings)
+                        result = FSharpLanguageServer._setup_runtime_dependencies(mock_config, mock_settings)
 
                         assert fsautocomplete_path in result
                         assert "--adaptive-lsp-server-enabled --project-graph-enabled --use-fcs-transparent-compiler" in result
